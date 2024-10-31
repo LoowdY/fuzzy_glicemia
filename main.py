@@ -286,6 +286,24 @@ class SistemaFuzzyInsulina:
             logger.error(f"Erro no cálculo fuzzy: {str(e)}")
             return None
 
+    def extrair_termos_recursivamente(self, antecedente):
+        """
+        Extrai todos os termos antecedentes recursivamente.
+
+        Args:
+            antecedente: Objeto antecedente da regra
+
+        Returns:
+            list: Lista de objetos Antecedent
+        """
+        termos = []
+        if isinstance(antecedente, ctrl.Antecedent):
+            termos.append(antecedente)
+        elif hasattr(antecedente, 'children'):
+            for child in antecedente.children:
+                termos.extend(self.extrair_termos_recursivamente(child))
+        return termos
+
     def calcular_pertinencias_entrada(self, entradas):
         """
         Calcula os graus de pertinência para todas as entradas.
@@ -331,16 +349,8 @@ class SistemaFuzzyInsulina:
                 # Extrair antecedentes da regra
                 antecedentes = regra.antecedent
 
-                # Verificar se a regra possui múltiplos antecedentes
-                termos = []
-                def extrair_termos(antecedente):
-                    if isinstance(antecedente, ctrl.Antecedent):
-                        termos.append(antecedente)
-                    elif hasattr(antecedente, 'children'):
-                        for child in antecedente.children:
-                            extrair_termos(child)
-
-                extrair_termos(antecedentes)
+                # Obter todos os termos envolvidos nos antecedentes
+                termos = self.extrair_termos_recursivamente(antecedentes)
 
                 # Calcular o grau de ativação (mínimo para AND)
                 graus = []
@@ -349,12 +359,12 @@ class SistemaFuzzyInsulina:
                     if var_name and termo:
                         grau = pertinencias_entrada[var_name][termo]
                         graus.append(grau)
+                        logger.debug(f"Termo {termo} na variável {var_name} com grau {grau:.3f}")
                     else:
-                        logger.error(f"Termo não mapeado corretamente para a regra {nome_regra}")
+                        logger.error(f"Erro ao mapear termo na regra {nome_regra}")
                         graus.append(0.0)
 
                 grau_ativacao = np.min(graus) if graus else 0.0
-
                 ativacoes[nome_regra] = {
                     'grau': grau_ativacao,
                     'label': regra.label
@@ -577,9 +587,35 @@ class InterfaceGrafica(tk.Tk):
         """
         aba = ttk.Frame(self.notebook)
 
+        # Frame para exibir valores crisp
+        frame_crisp = ttk.LabelFrame(aba, text="Valores Crisp das Entradas")
+        frame_crisp.pack(fill='x', padx=5, pady=5)
+
+        # Variáveis para exibir os valores crisp
+        self.vars_crisp = {
+            'glicemia': tk.StringVar(value="Glicemia: --- mg/dL"),
+            'taxa_variacao': tk.StringVar(value="Variação: --- mg/dL/min"),
+            'exercicio': tk.StringVar(value="Exercício: --- /10"),
+            'estresse': tk.StringVar(value="Estresse: --- /10"),
+            'carboidratos': tk.StringVar(value="Carboidratos: --- g")
+        }
+
+        # Criar labels para os valores crisp
+        for var_name, var in self.vars_crisp.items():
+            label = ttk.Label(
+                frame_crisp,
+                textvariable=var,
+                font=('Arial', 11, 'bold')
+            )
+            label.pack(padx=5, pady=2, anchor='w')
+
+        # Frame para regras e gráfico
+        frame_regras_e_grafico = ttk.Frame(aba)
+        frame_regras_e_grafico.pack(fill='both', expand=True, padx=5, pady=5)
+
         # Frame para regras
-        frame_regras = ttk.LabelFrame(aba, text="Regras Ativas")
-        frame_regras.pack(fill='both', expand=True, padx=5, pady=5)
+        frame_regras = ttk.LabelFrame(frame_regras_e_grafico, text="Regras Ativas")
+        frame_regras.pack(side='left', fill='both', expand=True, padx=5, pady=5)
 
         # Criar Treeview para regras
         colunas = ('Regra', 'Descrição', 'Ativação')
@@ -588,7 +624,7 @@ class InterfaceGrafica(tk.Tk):
         # Configurar colunas
         for col in colunas:
             self.tree_regras.heading(col, text=col)
-            self.tree_regras.column(col, width=150, anchor='center')
+            self.tree_regras.column(col, width=200, anchor='center')  # Ajuste de largura
 
         self.tree_regras.column('Descrição', width=500, anchor='w')
         self.tree_regras.pack(fill='both', expand=True, padx=5, pady=5)
@@ -597,6 +633,23 @@ class InterfaceGrafica(tk.Tk):
         scrollbar = ttk.Scrollbar(frame_regras, orient='vertical', command=self.tree_regras.yview)
         scrollbar.pack(side='right', fill='y')
         self.tree_regras['yscrollcommand'] = scrollbar.set
+
+        # Estilo para tags
+        estilo = ttk.Style()
+        estilo.theme_use('default')
+        estilo.configure("Treeview.Heading", font=('Arial', 10, 'bold'))
+        estilo.configure("ativa.Treeview", foreground='green')
+        estilo.configure("inativa.Treeview", foreground='gray')
+
+        # Frame para gráfico de barras
+        frame_grafico = ttk.LabelFrame(frame_regras_e_grafico, text="Grau de Ativação das Regras")
+        frame_grafico.pack(side='right', fill='both', expand=True, padx=5, pady=5)
+
+        # Criar gráfico de barras
+        self.fig_regras = plt.Figure(figsize=(6, 8), dpi=100)
+        self.ax_regras = self.fig_regras.add_subplot(111)
+        self.canvas_regras = FigureCanvasTkAgg(self.fig_regras, frame_grafico)
+        self.canvas_regras.get_tk_widget().pack(fill='both', expand=True)
 
         return aba
 
@@ -884,15 +937,24 @@ class InterfaceGrafica(tk.Tk):
         for item in self.tree_regras.get_children():
             self.tree_regras.delete(item)
 
+        # Definir limiar para considerar uma regra como ativa
+        limiar_ativacao = 0.1
+
+        # Listas para gráfico de barras
+        regras_lista = []
+        graus_lista = []
+        cores_lista = []
+
         # Adicionar regras ordenadas por grau de ativação
         for nome_regra, info in sorted(
-            ativacoes.items(),
-            key=lambda x: x[1]['grau'],
-            reverse=True
+                ativacoes.items(),
+                key=lambda x: x[1]['grau'],
+                reverse=True
         ):
             # Definir cor baseada no grau de ativação
             grau = info['grau']
-            tag = 'ativa' if grau > 0.1 else 'inativa'
+            tag = 'ativa' if grau > limiar_ativacao else 'inativa'
+            cor = 'green' if grau > limiar_ativacao else 'gray'
 
             # Inserir na tabela
             self.tree_regras.insert(
@@ -906,9 +968,35 @@ class InterfaceGrafica(tk.Tk):
                 tags=(tag,)
             )
 
-        # Configurar cores
+            # Adicionar para gráfico
+            regras_lista.append(nome_regra)
+            graus_lista.append(grau)
+            cores_lista.append(cor)
+
+        # Configurar cores após inserção
         self.tree_regras.tag_configure('ativa', foreground='green')
         self.tree_regras.tag_configure('inativa', foreground='gray')
+
+        # Atualizar gráfico de barras
+        self.ax_regras.cla()  # Limpar gráfico
+
+        y_pos = np.arange(len(regras_lista))
+        self.ax_regras.barh(y_pos, graus_lista, color=cores_lista)
+        self.ax_regras.set_yticks(y_pos)
+        self.ax_regras.set_yticklabels(regras_lista)
+        self.ax_regras.invert_yaxis()  # Inverter para que a primeira regra fique no topo
+        self.ax_regras.set_xlabel('Grau de Ativação')
+        self.ax_regras.set_title('Grau de Ativação das Regras')
+
+        # Ajustar limites do eixo x
+        self.ax_regras.set_xlim(0, 1)
+
+        # Adicionar rótulos de valor nas barras
+        for i, v in enumerate(graus_lista):
+            self.ax_regras.text(v + 0.01, i + 0.1, f"{v:.2f}", color='black', va='center')
+
+        self.fig_regras.tight_layout()
+        self.canvas_regras.draw()
 
     def atualizar_defuzzificacao(self, resultado):
         """
