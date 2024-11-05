@@ -580,14 +580,14 @@ class InterfaceGrafica(tk.Tk):
 
     def criar_aba_regras(self):
         """
-        Cria a aba de visualização das regras ativas.
+        Cria a aba de visualização das regras ativas e histórico.
 
         Returns:
             ttk.Frame: Frame contendo os elementos da aba
         """
         aba = ttk.Frame(self.notebook)
 
-        # Frame para exibir valores crisp
+        # Frame para exibir valores crisp atuais
         frame_crisp = ttk.LabelFrame(aba, text="Valores Crisp das Entradas")
         frame_crisp.pack(fill='x', padx=5, pady=5)
 
@@ -609,30 +609,23 @@ class InterfaceGrafica(tk.Tk):
             )
             label.pack(padx=5, pady=2, anchor='w')
 
-        # Frame para regras e gráfico
-        frame_regras_e_grafico = ttk.Frame(aba)
-        frame_regras_e_grafico.pack(fill='both', expand=True, padx=5, pady=5)
+        # Frame para regras ativas
+        frame_regras = ttk.LabelFrame(aba, text="Regras Ativas")
+        frame_regras.pack(fill='both', expand=True, padx=5, pady=5)
 
-        # Frame para regras
-        frame_regras = ttk.LabelFrame(frame_regras_e_grafico, text="Regras Ativas")
-        frame_regras.pack(side='left', fill='both', expand=True, padx=5, pady=5)
+        # Criar Treeview para regras ativas
+        colunas_ativas = ('Regra', 'Descrição', 'Ativação')
+        self.tree_regras_ativas = ttk.Treeview(frame_regras, columns=colunas_ativas, show='headings')
+        for col in colunas_ativas:
+            self.tree_regras_ativas.heading(col, text=col)
+            self.tree_regras_ativas.column(col, width=200, anchor='center')  # Ajuste de largura
 
-        # Criar Treeview para regras
-        colunas = ('Regra', 'Descrição', 'Ativação')
-        self.tree_regras = ttk.Treeview(frame_regras, columns=colunas, show='headings')
+        self.tree_regras_ativas.pack(side='left', fill='both', expand=True, padx=5, pady=5)
 
-        # Configurar colunas
-        for col in colunas:
-            self.tree_regras.heading(col, text=col)
-            self.tree_regras.column(col, width=200, anchor='center')  # Ajuste de largura
-
-        self.tree_regras.column('Descrição', width=500, anchor='w')
-        self.tree_regras.pack(fill='both', expand=True, padx=5, pady=5)
-
-        # Adicionar scrollbar
-        scrollbar = ttk.Scrollbar(frame_regras, orient='vertical', command=self.tree_regras.yview)
-        scrollbar.pack(side='right', fill='y')
-        self.tree_regras['yscrollcommand'] = scrollbar.set
+        # Adicionar scrollbar para regras ativas
+        scrollbar_regras_ativas = ttk.Scrollbar(frame_regras, orient='vertical', command=self.tree_regras_ativas.yview)
+        scrollbar_regras_ativas.pack(side='right', fill='y')
+        self.tree_regras_ativas.configure(yscrollcommand=scrollbar_regras_ativas.set)
 
         # Estilo para tags
         estilo = ttk.Style()
@@ -641,15 +634,51 @@ class InterfaceGrafica(tk.Tk):
         estilo.configure("ativa.Treeview", foreground='green')
         estilo.configure("inativa.Treeview", foreground='gray')
 
-        # Frame para gráfico de barras
-        frame_grafico = ttk.LabelFrame(frame_regras_e_grafico, text="Grau de Ativação das Regras")
-        frame_grafico.pack(side='right', fill='both', expand=True, padx=5, pady=5)
+        # Frame para histórico de regras
+        frame_historico_regras = ttk.LabelFrame(aba, text="Histórico de Regras Ativas")
+        frame_historico_regras.pack(fill='both', expand=True, padx=5, pady=5)
+
+        # Criar Treeview para histórico de regras
+        colunas_hist_regras = ('Timestamp', 'Regra', 'Descrição', 'Ativação')
+        self.tree_historico_regras = ttk.Treeview(frame_historico_regras, columns=colunas_hist_regras, show='headings')
+        for col in colunas_hist_regras:
+            self.tree_historico_regras.heading(col, text=col)
+            self.tree_historico_regras.column(col, width=150, anchor='center')  # Ajuste de largura
+
+        self.tree_historico_regras.pack(side='left', fill='both', expand=True, padx=5, pady=5)
+
+        # Adicionar scrollbar para histórico de regras
+        scrollbar_hist_regras = ttk.Scrollbar(frame_historico_regras, orient='vertical', command=self.tree_historico_regras.yview)
+        scrollbar_hist_regras.pack(side='right', fill='y')
+        self.tree_historico_regras.configure(yscrollcommand=scrollbar_hist_regras.set)
+
+        # Frame para gráfico de barras das regras ativas
+        frame_grafico_regras = ttk.LabelFrame(aba, text="Grau de Ativação das Regras Atuais")
+        frame_grafico_regras.pack(fill='both', expand=True, padx=5, pady=5)
 
         # Criar gráfico de barras
         self.fig_regras = plt.Figure(figsize=(6, 8), dpi=100)
         self.ax_regras = self.fig_regras.add_subplot(111)
-        self.canvas_regras = FigureCanvasTkAgg(self.fig_regras, frame_grafico)
+        self.canvas_regras = FigureCanvasTkAgg(self.fig_regras, frame_grafico_regras)
         self.canvas_regras.get_tk_widget().pack(fill='both', expand=True)
+
+        # Frame para histórico de entradas crisp
+        frame_historico_crisp = ttk.LabelFrame(aba, text="Histórico de Entradas Crisp")
+        frame_historico_crisp.pack(fill='both', expand=True, padx=5, pady=5)
+
+        # Criar Treeview para histórico de entradas
+        colunas_hist_crisp = ('Timestamp', 'Glicemia (mg/dL)', 'Variação (mg/dL/min)', 'Exercício (/10)', 'Estresse (/10)', 'Carboidratos (g)')
+        self.tree_historico_crisp = ttk.Treeview(frame_historico_crisp, columns=colunas_hist_crisp, show='headings')
+        for col in colunas_hist_crisp:
+            self.tree_historico_crisp.heading(col, text=col)
+            self.tree_historico_crisp.column(col, width=150, anchor='center')  # Ajuste de largura
+
+        self.tree_historico_crisp.pack(side='left', fill='both', expand=True, padx=5, pady=5)
+
+        # Adicionar scrollbar para histórico de entradas crisp
+        scrollbar_hist_crisp = ttk.Scrollbar(frame_historico_crisp, orient='vertical', command=self.tree_historico_crisp.yview)
+        scrollbar_hist_crisp.pack(side='right', fill='y')
+        self.tree_historico_crisp.configure(yscrollcommand=scrollbar_hist_crisp.set)
 
         return aba
 
@@ -794,7 +823,7 @@ class InterfaceGrafica(tk.Tk):
         elif aba_atual == "Fuzzificação":
             self.atualizar_fuzzificacao(entradas, resultado['pertinencias_entrada'])
         elif aba_atual == "Regras":
-            self.atualizar_regras(resultado['ativacao_regras'])
+            self.atualizar_regras(resultado['ativacao_regras'], entradas)
         elif aba_atual == "Defuzzificação":
             self.atualizar_defuzzificacao(resultado)
         elif aba_atual == "Análise":
@@ -817,7 +846,7 @@ class InterfaceGrafica(tk.Tk):
 
         # Configurar faixa alvo de glicemia
         self.ax_glicemia.fill_between(historico['timestamp']/60, 70, 180,
-                                     color='green', alpha=0.1, label='Faixa Alvo (70-180 mg/dL)')
+                                     color='green', alpha=0.1, label='Faixa Alvo')
 
         # Configurações do gráfico de glicemia
         self.ax_glicemia.set_ylabel('Glicemia (mg/dL)', fontsize=10)
@@ -926,16 +955,17 @@ class InterfaceGrafica(tk.Tk):
         ax.grid(True, alpha=0.3)
         ax.legend(loc='upper right', fontsize='small')
 
-    def atualizar_regras(self, ativacoes):
+    def atualizar_regras(self, ativacoes, entradas):
         """
-        Atualiza a visualização das regras ativas.
+        Atualiza a visualização das regras ativas e o histórico.
 
         Args:
             ativacoes (dict): Dicionário com graus de ativação das regras
+            entradas (dict): Valores atuais das variáveis de entrada
         """
-        # Limpar tabela
-        for item in self.tree_regras.get_children():
-            self.tree_regras.delete(item)
+        # Limpar Treeview de regras ativas
+        for item in self.tree_regras_ativas.get_children():
+            self.tree_regras_ativas.delete(item)
 
         # Definir limiar para considerar uma regra como ativa
         limiar_ativacao = 0.1
@@ -956,8 +986,8 @@ class InterfaceGrafica(tk.Tk):
             tag = 'ativa' if grau > limiar_ativacao else 'inativa'
             cor = 'green' if grau > limiar_ativacao else 'gray'
 
-            # Inserir na tabela
-            self.tree_regras.insert(
+            # Inserir na Treeview de regras ativas
+            self.tree_regras_ativas.insert(
                 '',
                 'end',
                 values=(
@@ -974,8 +1004,8 @@ class InterfaceGrafica(tk.Tk):
             cores_lista.append(cor)
 
         # Configurar cores após inserção
-        self.tree_regras.tag_configure('ativa', foreground='green')
-        self.tree_regras.tag_configure('inativa', foreground='gray')
+        self.tree_regras_ativas.tag_configure('ativa', foreground='green')
+        self.tree_regras_ativas.tag_configure('inativa', foreground='gray')
 
         # Atualizar gráfico de barras
         self.ax_regras.cla()  # Limpar gráfico
@@ -986,7 +1016,7 @@ class InterfaceGrafica(tk.Tk):
         self.ax_regras.set_yticklabels(regras_lista)
         self.ax_regras.invert_yaxis()  # Inverter para que a primeira regra fique no topo
         self.ax_regras.set_xlabel('Grau de Ativação')
-        self.ax_regras.set_title('Grau de Ativação das Regras')
+        self.ax_regras.set_title('Grau de Ativação das Regras Atuais')
 
         # Ajustar limites do eixo x
         self.ax_regras.set_xlim(0, 1)
@@ -997,6 +1027,34 @@ class InterfaceGrafica(tk.Tk):
 
         self.fig_regras.tight_layout()
         self.canvas_regras.draw()
+
+        # Atualizar histórico de regras
+        timestamp = datetime.now().strftime('%H:%M:%S')
+        for nome_regra, info in ativacoes.items():
+            self.tree_historico_regras.insert(
+                '',
+                'end',
+                values=(
+                    timestamp,
+                    nome_regra,
+                    info['label'],
+                    f"{info['grau']:.3f}"
+                )
+            )
+
+        # Atualizar histórico de entradas crisp
+        self.tree_historico_crisp.insert(
+            '',
+            'end',
+            values=(
+                timestamp,
+                f"{entradas['glicemia']:.1f}",
+                f"{entradas['taxa_variacao']:.1f}",
+                f"{entradas['exercicio']:.1f}",
+                f"{entradas['estresse']:.1f}",
+                f"{entradas['carboidratos']:.1f}"
+            )
+        )
 
     def atualizar_defuzzificacao(self, resultado):
         """
