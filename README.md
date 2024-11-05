@@ -1,7 +1,9 @@
+
 # Sistema Fuzzy de Controle de Insulina
 
 ## Descrição
-O sistema implementa um controlador fuzzy para administração de insulina, levando em consideração múltiplas variáveis de entrada para determinar a taxa ideal de infusão de insulina. O sistema possui uma interface gráfica interativa que permite o monitoramento em tempo real e análise detalhada do processo de controle.
+
+O **Sistema Fuzzy de Controle de Insulina** implementa um controlador fuzzy para administração de insulina, considerando múltiplas variáveis de entrada para determinar a taxa ideal de infusão de insulina em pacientes com diabetes. O sistema possui uma interface gráfica interativa que permite o monitoramento em tempo real e a análise detalhada do processo de controle glicêmico, incluindo visualizações de regras ativas e funções de pertinência.
 
 ### Principais Características
 
@@ -14,54 +16,56 @@ O sistema implementa um controlador fuzzy para administração de insulina, leva
 
 - **Interface Gráfica Avançada:**
   - Monitoramento em tempo real
-  - Visualização do processo de fuzzificação
-  - Acompanhamento das regras ativas
+  - Visualização das funções de pertinência (fuzzificação)
+  - Histórico completo das regras ativas com seus respectivos graus de ativação
   - Visualização do processo de defuzzificação
-  - Análise estatística detalhada
+  - Estatísticas detalhadas para análise do comportamento glicêmico
 
 - **Sistema de Regras Fuzzy:**
-  - Regras adaptativas baseadas em múltiplos fatores
-  - Consideração de situações críticas (hipoglicemia/hiperglicemia)
-  - Ajuste dinâmico baseado em exercício e estresse
+  - Regras adaptativas que consideram múltiplos fatores
+  - Regras específicas para situações críticas como hipoglicemia e hiperglicemia
+  - Ajuste dinâmico baseado em níveis de exercício e estresse
 
 - **Análise e Estatísticas:**
   - Tempo no alvo glicêmico
   - Distribuição de glicemia
   - Correlação entre variáveis
-  - Histórico detalhado
+  - Histórico detalhado das entradas crisp
 
 ## Requisitos Técnicos
 
 ### Dependências
-```
+
+```plaintext
 numpy
-skfuzzy
+scikit-fuzzy
 tkinter
 matplotlib
 ```
 
 ### Bibliotecas Principais
+
 - `numpy`: Processamento numérico
-- `skfuzzy`: Implementação da lógica fuzzy
+- `scikit-fuzzy`: Implementação da lógica fuzzy
 - `tkinter`: Interface gráfica
 - `matplotlib`: Visualização de dados
 
 ## Instalação
 
-1. Clone o repositório:
-```bash
-git clone [URL_DO_REPOSITÓRIO]
-```
+1. **Clone o repositório:**
+   ```bash
+   git clone [URL_DO_REPOSITORIO]
+   ```
 
-2. Instale as dependências:
-```bash
-pip install numpy scikit-fuzzy matplotlib
-```
+2. **Instale as dependências:**
+   ```bash
+   pip install numpy scikit-fuzzy matplotlib
+   ```
 
-3. Execute o programa:
-```bash
-python main.py
-```
+3. **Execute o programa:**
+   ```bash
+   python main.py
+   ```
 
 ## Estrutura do Sistema
 
