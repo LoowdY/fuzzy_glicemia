@@ -141,7 +141,7 @@ matplotlib
 **Sistema Fuzzy de Controle de Insulina**
 
 **Autor**  
-João Renan S. Lopes
+João Renan S. Lopes, Carlos Egger, Fellipe Torres e Pedro Coimbra.
 
 **Orientação**  
 Profa. Polyana Nascimento
